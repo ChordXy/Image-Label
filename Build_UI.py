@@ -23,7 +23,6 @@ class MyWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.setFixedSize(self.width(), self.height())
         self.setWindowFlags(Qt.WindowMinimizeButtonHint)
-        self.setWindowTitle("图像标注 v1.2")
         self.setWindowIcon(QIcon(':/Icons/Resources/inkscape_128px_1174969_easyicon.net.ico'))
         Functions.setupUIFunctions(self)
 
