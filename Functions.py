@@ -127,6 +127,62 @@ class BoundingBox():
     def isValid(self):
         return self.__tlx > 0
 
+class StatisticThread(QThread):
+    StatisticState = pyqtSignal(int)
+    StatisticResult = pyqtSignal(list)
+    
+    def __init__(self, parent=None):
+        super(StatisticThread, self).__init__(parent)
+        self.Statistics = []
+
+    def setParameters(self, TxtsPath, totalClass, emitCount=1):
+        self.TxtsPath = TxtsPath
+        self.totalClass = totalClass
+        self.emitCount = emitCount
+        for i in range(self.totalClass):
+            self.Statistics.append(0)
+
+    def run(self):
+        for index, txtfile in enumerate(self.TxtsPath):
+            result = self.getTxt(txtfile)
+            for res in result:
+                self.Statistics[res] += 1
+            if index % self.emitCount == 0:
+                self.StatisticState.emit(index)
+        self.StatisticResult.emit(self.Statistics)
+
+    def getTxt(self, txtFile):
+        result = []
+        with open(txtFile, 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    return 
+                data = line.split(',')
+                result.append(int(data[0]))
+        return result
+
+class CheckThread(QThread):
+    CheckState = pyqtSignal(int)
+    CheckResult = pyqtSignal(list)
+    
+    def __init__(self, parent=None):
+        super(CheckThread, self).__init__(parent)
+
+    def setParameters(self, Images, pathAnnotation):
+        self.Images = Images
+        self.pathAnnotation = pathAnnotation
+
+    def run(self):
+        UnLabelledImages = []
+        for index, elem in enumerate(self.Images):
+            self.CheckState.emit(index)
+            if not os.path.exists(os.path.join(elem.replace('.jpg', '.txt'))):
+                UnLabelledImages.append(elem)
+        self.CheckResult.emit(UnLabelledImages)
+
+
 class setupUIFunctions():
     def __init__(self, Window):
         self.Window = Window
@@ -294,30 +350,70 @@ class setupUIFunctions():
     #                                   读入图像                                       #
     ####################################################################################
 
+    def statisticLabels(self):
+        if not self.TxtsPath:
+            self.Window.progressBar.setValue(100)
+        else:
+            self.Window.label_progressbar.setText("载入状态：读取已标记标签信息...")
+            self.MyDetectThread = StatisticThread()
+            self.MyDetectThread.setParameters(self.TxtsPath, self.totalClass, 1000)
+            self.MyDetectThread.StatisticState.connect(self.displayProgress)
+            self.MyDetectThread.StatisticResult.connect(self.displayStatisticResult)
+            self.MyDetectThread.start()
+
+    def displayProgress(self, index):
+        progress = int(100 * (index / len(self.TxtsPath)))
+        self.Window.progressBar.setValue(progress)
+    
+    def displayStatisticResult(self, stat):
+        self.Window.progressBar.setValue(100)
+        self.Statistics = stat
+        for i in range(self.totalClass):
+            Count = QTableWidgetItem(str(self.Statistics[i]))
+            Count.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+            self.Window.tableWidget.setItem(i, 1, Count)
+        self.locateFirstUnlabelled()
+
+    def locateFirstUnlabelled(self):
+        if not self.TxtsPath:
+            self.Window.progressBar.setValue(100)
+        else:
+            self.Window.label_progressbar.setText("载入状态：读取未标记标签信息...")
+            self.MyCheckThread = CheckThread()
+            self.MyCheckThread.setParameters(self.Images, self.pathAnnotation)
+            self.MyCheckThread.CheckResult.connect(self.CheckUnlabelledResult)
+            self.MyCheckThread.CheckState.connect(self.CheckUnlabelledState)
+            self.MyCheckThread.start()
+
+    def CheckUnlabelledState(self, index):
+        progress = int(100 * (index / len(self.Images)))
+        self.Window.progressBar.setValue(progress)
+
+    def CheckUnlabelledResult(self, UnLabelledImages):
+        self.Window.progressBar.setValue(100)
+        if UnLabelledImages:
+            self.PresentPage = self.Images.index(UnLabelledImages[0].replace('.txt', '.jpg')) + 1
+        else:
+            self.PresentPage = 1
+        
+        self.Window.label_progressbar.setText("载入状态：完成！")
+        self.setTitle()
+        self.refreshPages()
+        self.Window.lineEdit_present_page.setText("{}".format(self.PresentPage))
+        self.showImage()
+
     def analyseData(self):
         self.Txts = [elem.replace('.jpg', '.txt') for elem in self.Images]
         self.ImagesPath = [os.path.join(self.pathImage, elem) for elem in self.Images]
         self.TxtsPath = [os.path.join(self.pathAnnotation, elem) for elem in self.Txts]
         self.TotalImages = len(self.Images)
 
+        self.statisticLabels()
+
         if self.CheckIsAllDone():
             self.Window.checkBox_Undone.setCheckable(False)
         else:
             self.Window.checkBox_Undone.setCheckable(True)
-
-        self.locateFirstUnlabelled()
-        self.setTitle()
-        self.refreshPages()
-        self.Window.lineEdit_present_page.setText("{}".format(self.PresentPage))
-        self.showImage()
-
-    def locateFirstUnlabelled(self):
-        labelledImages = os.listdir(self.pathAnnotation)
-        UnLabelledImages = [elem for elem in self.Images if elem.replace('.jpg', '.txt') not in labelledImages]
-        if UnLabelledImages:
-            self.PresentPage = self.Images.index(UnLabelledImages[0].replace('.txt', '.jpg')) + 1
-        else:
-            self.PresentPage = 1
 
     def setTitle(self):
         self.Window.setWindowTitle(self.version + "  -  " + self.Images[self.PresentPage - 1])  
@@ -470,8 +566,6 @@ class setupUIFunctions():
         # 保存
         self.saveFile()
         # 统计信息
-        for bndbox in self.bbox:
-            self.Statistics[bndbox.cls] += 1
         for i in range(self.totalClass):
             Count = QTableWidgetItem(str(self.Statistics[i]))
             Count.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
@@ -604,13 +698,17 @@ class setupUIFunctions():
         dy = y * self.ResizeRatio[1]
         if dx >= self.bbox[self.PresentBox].tlx and dx <= self.bbox[self.PresentBox].brx and dy >= self.bbox[self.PresentBox].tly and dy <= self.bbox[self.PresentBox].bry:
             if value > 0:
+                self.Statistics[self.bbox[self.PresentBox].cls] -= 1
                 self.bbox[self.PresentBox].cls += 1
                 if self.bbox[self.PresentBox].cls >= self.totalClass:
                     self.bbox[self.PresentBox].cls = 0
+                self.Statistics[self.bbox[self.PresentBox].cls] += 1
             if value < 0:
+                self.Statistics[self.bbox[self.PresentBox].cls] -= 1
                 self.bbox[self.PresentBox].cls -= 1
                 if self.bbox[self.PresentBox].cls < 0:
                     self.bbox[self.PresentBox].cls = self.totalClass - 1
+                self.Statistics[self.bbox[self.PresentBox].cls] += 1
             image_show = self.ProcessImage(self.annotateImage(self.presentImage.copy(), True))
             self.Window.label_Image.setPixmap(QPixmap(image_show))
 
@@ -636,6 +734,8 @@ class setupUIFunctions():
                 break
         if not isInside:
             return
+
+        self.Statistics[self.bbox[self.PresentBox].cls] -= 1
         del self.bbox[self.PresentBox]
         self.PresentBox -= 1
         if self.PresentBox <= 0:
@@ -656,6 +756,7 @@ class setupUIFunctions():
         self.bbox.append(temp)
 
         self.PresentBox += 1
+        self.Statistics[0] += 1
         self.refreshInfo()
         image_show = self.ProcessImage(self.annotateImage(self.presentImage.copy(), True))
         self.Window.label_Image.setPixmap(QPixmap(image_show))
