@@ -655,8 +655,7 @@ class setupUIFunctions():
         temp.setPoints(dx0, dy0, dx1, dy1)
         self.bbox.append(temp)
 
-        if self.PresentBox == -1:
-            self.PresentBox = 0
+        self.PresentBox += 1
         self.refreshInfo()
         image_show = self.ProcessImage(self.annotateImage(self.presentImage.copy(), True))
         self.Window.label_Image.setPixmap(QPixmap(image_show))
