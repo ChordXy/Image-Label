@@ -192,6 +192,7 @@ class setupUIFunctions():
         self.pathImage = None
         self.pathAnnotation = None
         self.PresentPage = 1
+        self.presentImage = None
         self.PresentBox = 0
         self.BBColor = [(0, 255, 255), (84, 46, 8), (18, 153, 255), (225, 105, 65), (0, 97, 255), (179, 222, 245), (42, 42, 128), (0, 252, 124), (87, 139, 46), (143, 143, 188)]
         self.Statistics = []
@@ -683,15 +684,6 @@ class setupUIFunctions():
         image_show = self.ProcessImage(self.annotateImage(self.presentImage.copy(), True))
         self.Window.label_Image.setPixmap(QPixmap(image_show))
 
-    def selectColor(self):
-        color = QColorDialog.getColor().name()
-        color = color.replace("#", '')
-        blue = eval('0x' + color[0:2])
-        green = eval('0x' + color[2:4])
-        red = eval('0x' + color[4:6])
-        self.BBColor = (red, green, blue)
-        self.showImage()
-
     ####################################################################################
     #                                      图像标注                                    #
     ####################################################################################
@@ -757,7 +749,8 @@ class setupUIFunctions():
         temp.setPoints(dx0, dy0, dx1, dy1)
         self.bbox.append(temp)
 
-        self.PresentBox += 1
+
+        self.PresentBox = len(self.bbox) - 1
         self.Statistics[0] += 1
         self.refreshInfo()
         image_show = self.ProcessImage(self.annotateImage(self.presentImage.copy(), True))
@@ -779,7 +772,22 @@ class setupUIFunctions():
     ####################################################################################
     #                                      数据表格                                    #
     ####################################################################################
+    def selectColor(self, item):
+        row = self.Window.tableWidget.row(item)
+        if self.Window.tableWidget.column(item) == 2:
+            color = QColorDialog.getColor().name()
+            color = color.replace("#", '')
+            blue = eval('0x' + color[0:2])
+            green = eval('0x' + color[2:4])
+            red = eval('0x' + color[4:6])
+            self.BBColor[row] = (red, green, blue)
+            self.Window.tableWidget.item(row, 2).setBackground(QBrush(QColor(*reversed(self.BBColor[row]))))
+            if self.bbox:
+                image_show = self.ProcessImage(self.annotateImage(self.presentImage.copy(), True))
+                self.Window.label_Image.setPixmap(QPixmap(image_show))
+
     def InitTable(self):
+        self.Window.tableWidget.itemClicked.connect(self.selectColor)
         self.Window.tableWidget.setRowCount(0)
         self.Window.tableWidget.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.Window.tableWidget.horizontalHeader().setSectionResizeMode(1, QHeaderView.Fixed)
