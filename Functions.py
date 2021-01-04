@@ -144,6 +144,8 @@ class StatisticThread(QThread):
 
     def run(self):
         for index, txtfile in enumerate(self.TxtsPath):
+            if not os.path.exists(txtfile):
+                continue
             result = self.getTxt(txtfile)
             for res in result:
                 self.Statistics[res] += 1
