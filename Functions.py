@@ -480,9 +480,9 @@ class setupUIFunctions():
                 return image
         for index, bndbox in enumerate(self.bbox):
             if index == self.PresentBox:
-                thickness = 2
+                thickness = 4
             else:
-                thickness = 1
+                thickness = 2
             cv2.rectangle(image, bndbox.topLeft, bndbox.bottomRight, self.BBColor[bndbox.cls], thickness)
             if self.isWordAnnotation:
                 image = cv2.putText(image, self.replaceDict_E2N[bndbox.cls], bndbox.topLeft, cv2.FONT_HERSHEY_TRIPLEX, 0.5, self.BBColor[bndbox.cls], thickness)
