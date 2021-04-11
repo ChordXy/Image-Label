@@ -206,7 +206,7 @@ class setupUIFunctions():
         self.Window.setWindowTitle(self.version)
 
         self.pathRemenber = 'C:'
-        if platform.system() == "Linux":
+        if platform.system() == "Linux" or platform.system() == 'darwin':
             self.pathRemenber = '~/'
             
         self.setupUIFunctions()
