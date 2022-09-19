@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'c:\Users\Cabrite\Documents\GitHub\Image-Label\Labelling.ui'
+# Form implementation generated from reading ui file 'E:\Projects\Github\GitHub\Image-Label\Labelling.ui'
 #
 # Created by: PyQt5 UI code generator 5.13.0
 #
@@ -13,7 +13,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1323, 739)
+        MainWindow.resize(1323, 980)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.centralwidget)
@@ -26,8 +26,8 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_Image.sizePolicy().hasHeightForWidth())
         self.label_Image.setSizePolicy(sizePolicy)
-        self.label_Image.setMinimumSize(QtCore.QSize(960, 540))
-        self.label_Image.setMaximumSize(QtCore.QSize(960, 540))
+        self.label_Image.setMinimumSize(QtCore.QSize(960, 768))
+        self.label_Image.setMaximumSize(QtCore.QSize(960, 768))
         self.label_Image.setStyleSheet("")
         self.label_Image.setText("")
         self.label_Image.setObjectName("label_Image")

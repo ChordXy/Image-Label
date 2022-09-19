@@ -125,7 +125,7 @@ class BoundingBox():
     ########################  是否合法  ########################
     @property
     def isValid(self):
-        return self.__tlx > 0
+        return self.__tlx >= 0
 
 class StatisticThread(QThread):
     StatisticState = pyqtSignal(int)
@@ -180,7 +180,7 @@ class CheckThread(QThread):
         UnLabelledImages = []
         for index, elem in enumerate(self.Images):
             self.CheckState.emit(index)
-            if not os.path.exists(os.path.join(elem.replace('.jpg', '.txt'))):
+            if not os.path.exists(os.path.join(elem.replace('.bmp', '.txt'))):
                 UnLabelledImages.append(elem)
         self.CheckResult.emit(UnLabelledImages)
 
@@ -194,7 +194,13 @@ class setupUIFunctions():
         self.PresentPage = 1
         self.presentImage = None
         self.PresentBox = 0
-        self.BBColor = [(0, 255, 255), (84, 46, 8), (18, 153, 255), (225, 105, 65), (0, 97, 255), (179, 222, 245), (42, 42, 128), (0, 252, 124), (87, 139, 46), (143, 143, 188)]
+        self.BBColor = [
+            ( 75,  25, 230), ( 75, 180,  60), ( 25, 225, 255), (216,  99,  67), ( 49, 130, 245), 
+            (180,  30, 145), (244, 212,  66), (230,  50, 240), ( 69, 239, 191), (212, 190, 250), 
+            (144, 253, 170), (255, 190, 220), ( 36,  99, 154), (200, 250, 255), (  0,   0, 128), 
+            (195, 255, 170), (  0, 128, 128), (177, 216, 255), (117,   0,   0), (169, 169, 169), 
+            (117,   0,   0), (169, 169, 169), 
+        ]
         self.Statistics = []
         self.replaceDict_N2E = dict()
         self.replaceDict_E2N = []
@@ -246,7 +252,7 @@ class setupUIFunctions():
     ####################################################################################
 
     def getDirectory(self, rtype):
-        info = ["请选择标注图像 jpg 路径", "请选择标注文件 txt 路径"]
+        info = ["请选择标注图像 bmp 路径", "请选择标注文件 txt 路径"]
         dirt = QFileDialog.getExistingDirectory(None, info[rtype], self.pathRemenber)
         if dirt == "":
             return
@@ -278,8 +284,8 @@ class setupUIFunctions():
             return
         
         self.Window.label_path_image.setText(self.pathImage)
-        self.Images = [elem for elem in os.listdir(self.pathImage) if elem.endswith('.jpg')]
-        self.ImageOrders = [elem.replace('.jpg', '') for elem in self.Images]
+        self.Images = [elem for elem in os.listdir(self.pathImage) if elem.endswith('.bmp')]
+        self.ImageOrders = [elem.replace('.bmp', '') for elem in self.Images]
 
     def checkAnnotationDirectory(self):
         self.setRightPath(1)
@@ -289,7 +295,7 @@ class setupUIFunctions():
 
     def refreshDirectory(self):
         if sum(self.pathReady) == 2:
-            self.Images = [elem for elem in os.listdir(self.pathImage) if elem.endswith('.jpg')]
+            self.Images = [elem for elem in os.listdir(self.pathImage) if elem.endswith('.bmp')]
             self.analyseData()
         else:
             return
@@ -395,7 +401,7 @@ class setupUIFunctions():
     def CheckUnlabelledResult(self, UnLabelledImages):
         self.Window.progressBar.setValue(100)
         if UnLabelledImages:
-            self.PresentPage = self.Images.index(UnLabelledImages[0].replace('.txt', '.jpg')) + 1
+            self.PresentPage = self.Images.index(UnLabelledImages[0].replace('.txt', '.bmp')) + 1
         else:
             self.PresentPage = 1
         
@@ -406,7 +412,7 @@ class setupUIFunctions():
         self.showImage()
 
     def analyseData(self):
-        self.Txts = [elem.replace('.jpg', '.txt') for elem in self.Images]
+        self.Txts = [elem.replace('.bmp', '.txt') for elem in self.Images]
         self.ImagesPath = [os.path.join(self.pathImage, elem) for elem in self.Images]
         self.TxtsPath = [os.path.join(self.pathAnnotation, elem) for elem in self.Txts]
         self.TotalImages = len(self.Images)
@@ -470,7 +476,7 @@ class setupUIFunctions():
         if ExtraBndBox:
             cv2.rectangle(image, ExtraBndBox.topLeft, ExtraBndBox.bottomRight, self.BBColor[ExtraBndBox.cls], 1)
             if self.isWordAnnotation:
-                image = cv2.putText(image, self.replaceDict_E2N[ExtraBndBox.cls], ExtraBndBox.topLeft, cv2.FONT_HERSHEY_TRIPLEX, 0.5, self.BBColor[ExtraBndBox.cls], 1)
+                image = cv2.putText(image, self.replaceDict_E2N[ExtraBndBox.cls], ExtraBndBox.topLeft, cv2.FONT_HERSHEY_TRIPLEX, 0.75, self.BBColor[ExtraBndBox.cls], 1)
 
         if not self.bbox:
             return image
@@ -480,19 +486,19 @@ class setupUIFunctions():
                 return image
         for index, bndbox in enumerate(self.bbox):
             if index == self.PresentBox:
-                thickness = 4
-            else:
                 thickness = 2
+            else:
+                thickness = 1
             cv2.rectangle(image, bndbox.topLeft, bndbox.bottomRight, self.BBColor[bndbox.cls], thickness)
             if self.isWordAnnotation:
-                image = cv2.putText(image, self.replaceDict_E2N[bndbox.cls], bndbox.topLeft, cv2.FONT_HERSHEY_TRIPLEX, 0.5, self.BBColor[bndbox.cls], thickness)
+                image = cv2.putText(image, self.replaceDict_E2N[bndbox.cls], bndbox.topLeft, cv2.FONT_HERSHEY_TRIPLEX, 0.75, self.BBColor[bndbox.cls], thickness)
 
         return image
 
     def ProcessImage(self, image):
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image_cvt = QImage(image_rgb[:], image_rgb.shape[1], image_rgb.shape[0], image_rgb.shape[1] * 3, QImage.Format_RGB888)
-        image_show = QPixmap(image_cvt).scaled(960, 540)
+        image_show = QPixmap(image_cvt).scaled(960, 768)
         return image_show
 
     def refreshInfo(self):
@@ -531,7 +537,7 @@ class setupUIFunctions():
 
     def showImage(self):
         self.presentImage = cv2.imdecode(np.fromfile(self.ImagesPath[self.PresentPage - 1], dtype=np.uint8), cv2.IMREAD_COLOR)
-        self.ResizeRatio = [self.presentImage.shape[1] / 960, self.presentImage.shape[0] / 540]
+        self.ResizeRatio = [self.presentImage.shape[1] / 960, self.presentImage.shape[0] / 768]
         image_show = self.ProcessImage(self.annotateImage(self.presentImage.copy()))
         self.Window.label_Image.setPixmap(QPixmap(image_show))
         self.refreshInfo()
@@ -640,7 +646,7 @@ class setupUIFunctions():
 
     def ChangeToUnlabelled(self):
         labelledImages = os.listdir(self.pathAnnotation)
-        UnLabelledImages = [elem for elem in self.Images if elem.replace('.jpg', '.txt') not in labelledImages]
+        UnLabelledImages = [elem for elem in self.Images if elem.replace('.bmp', '.txt') not in labelledImages]
         self.BackupImages = self.Images
         self.Images = UnLabelledImages
 
@@ -745,7 +751,7 @@ class setupUIFunctions():
         dx1 = int(x1 * self.ResizeRatio[0])
         dy1 = int(y1 * self.ResizeRatio[1])
 
-        temp = BoundingBox(0)
+        temp = BoundingBox(9)
         temp.setPoints(dx0, dy0, dx1, dy1)
         self.bbox.append(temp)
 
@@ -762,7 +768,7 @@ class setupUIFunctions():
         dx1 = int(x1 * self.ResizeRatio[0])
         dy1 = int(y1 * self.ResizeRatio[1])
 
-        temp = BoundingBox(0)
+        temp = BoundingBox(9)
         temp.setPoints(dx0, dy0, dx1, dy1)
 
         image_show = self.ProcessImage(self.annotateImage(self.presentImage.copy(), True, temp))

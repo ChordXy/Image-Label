@@ -6,6 +6,18 @@ LastEditTime: 2021-01-01 10:28:52
 Description: Do not edit
 '''
 #-*-coding:utf-8-*-
+
+
+'''
+快捷键
+    ←        : 上一张
+    →        : 下一张
+    ctrl + d : 保存并下一张
+    ctrl + e : 删除当前图像
+    ctrl + q : 退出程序
+'''
+
+
 import sys
 import platform
 import datetime
